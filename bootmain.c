@@ -14,6 +14,7 @@
 
 void readseg(uchar *, uint, uint);
 
+// bootmainはkernelを0x10000にロードする
 void bootmain(void)
 {
   struct elfhdr *elf;
@@ -21,16 +22,18 @@ void bootmain(void)
   void (*entry)(void);
   uchar *pa;
 
+  // 0x10000 is the first address after the kernel in memory
   elf = (struct elfhdr *)0x10000; // scratch space
 
   // Read 1st page off disk
+  // readsegはxv6.imgの1セクタ目(kernel)を読み込む
   readseg((uchar *)elf, 4096, 0);
 
   // Is this an ELF executable?
   if (elf->magic != ELF_MAGIC)
     return; // let bootasm.S handle error
 
-  // Load each program segment (ignores ph flags).
+  // program segment をロードする(ignores ph flags).
   ph = (struct proghdr *)((uchar *)elf + elf->phoff);
   eph = ph + elf->phnum;
   for (; ph < eph; ph++)
@@ -38,12 +41,15 @@ void bootmain(void)
     pa = (uchar *)ph->paddr;
     readseg(pa, ph->filesz, ph->off);
     if (ph->memsz > ph->filesz)
+      // memszが大きければ足りない分を0で埋める
       stosb(pa + ph->filesz, 0, ph->memsz - ph->filesz);
   }
 
   // Call the entry point from the ELF header.
   // Does not return!
   entry = (void (*)(void))(elf->entry);
+  // kernelのエントリポイントを呼び出す
+  // kernel.ldでENTRYを指定できる
   entry();
 }
 
@@ -75,7 +81,7 @@ void readsect(void *dst, uint offset)
 // Might copy more than asked.
 // pa: physical address
 // count: number of bytes to read
-// offset: disk offset by bytes
+// offset: kernelを0byte目にあるdiskとしてのoffset by bytes
 void readseg(uchar *pa, uint count, uint offset)
 {
   uchar *epa;
@@ -86,6 +92,7 @@ void readseg(uchar *pa, uint count, uint offset)
   pa -= offset % SECTSIZE;
 
   // Translate from bytes to sectors; kernel starts at sector 1.
+  // 1セクタ目から
   offset = (offset / SECTSIZE) + 1;
 
   // If this is too slow, we could read lots of sectors at a time.

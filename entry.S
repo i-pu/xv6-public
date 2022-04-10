@@ -44,12 +44,16 @@ _start = V2P_WO(entry)
 .globl entry
 entry:
   # Turn on page size extension for 4Mbyte pages
+  # cr4レジスタでcpuのいろいろなモードを切り替えることが出来る
+  # page size extensionはdefaultで4KiBのページサイズを4Mibになる
   movl    %cr4, %eax
   orl     $(CR4_PSE), %eax
   movl    %eax, %cr4
+
   # Set page directory
   movl    $(V2P_WO(entrypgdir)), %eax
   movl    %eax, %cr3
+
   # Turn on paging.
   movl    %cr0, %eax
   orl     $(CR0_PG|CR0_WP), %eax

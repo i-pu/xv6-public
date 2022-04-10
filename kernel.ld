@@ -11,12 +11,22 @@ SECTIONS
         /* Must be equal to KERNLINK */
 	. = 0x80100000;
 
+	/* 
+	 * sectionにはVMA(virtual memory address)とLMA(load memory address)があり，
+	 * AT() is a macro that takes a symbol and 物理アドレス(LMA)を指定できる．
+	 * objdump -h kernelすれば
+	 */
 	.text : AT(0x100000) {
 		*(.text .stub .text.* .gnu.linkonce.t.*)
 	}
 
 	PROVIDE(etext = .);	/* Define the 'etext' symbol to this value */
 
+	/* 
+	 * LMAの値は.textのLMAの値を引き継ぐことに注意する
+	 * AT(0x100000)のようにATは上書きしようとするとエラーになるので，
+	 * 上書きしないようにするために.textのLMAを引き継ぐ
+	 */
 	.rodata : {
 		*(.rodata .rodata.* .gnu.linkonce.r.*)
 	}
